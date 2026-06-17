@@ -1,0 +1,552 @@
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #0b1021;
+  color: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.tvGoogleSheetPanel {
+  min-height: 100vh;
+  padding: 10px;
+}
+
+.tvGoogleSheetPanel .dashboardSection {
+  margin-bottom: 12px;
+  padding: 10px;
+}
+
+.tvGoogleSheetPanel .dashboardSectionHeader h2 {
+  font-size: 1rem;
+}
+
+.todoSection .dashboardSectionHeader {
+  margin-bottom: 8px;
+}
+
+.todoSection .dashboardSectionHeader h2,
+.tvEngineerSection .dashboardSectionHeader h2 {
+  margin-bottom: 0;
+}
+
+.tvEngineerSection .dashboardSection {
+  margin-bottom: 0;
+  padding: 10px 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboardSectionEngineerLoad {
+  position: relative;
+  overflow: hidden;
+}
+
+.tvEngineerSection .engineerBoardTableWrap {
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 4px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #64748b #1e293b;
+}
+
+.tvEngineerSection .engineerBoardTableWrap::-webkit-scrollbar {
+  width: 10px;
+}
+
+.tvEngineerSection .engineerBoardTableWrap::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 5px;
+}
+
+.tvEngineerSection .engineerBoardTableWrap::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 5px;
+}
+
+.tvEngineerSection .engineerBoardTableWrap::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.tvEngineerSection .engineerSlider {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tvEngineerSection .engineerBoard {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.tvEngineerSection .engineerBoardName {
+  display: none;
+}
+
+.tvEngineerSection .engineerBoardTable {
+  font-size: 0.82rem;
+}
+
+.tvEngineerSection .engineerBoardTable th,
+.tvEngineerSection .engineerBoardTable td {
+  padding: 8px 10px;
+}
+
+.todoSection .dashboardSection {
+  margin-bottom: 0;
+}
+
+.todoSection .engineerBoardTable {
+  font-size: 0.82rem;
+}
+
+.todoSection .engineerBoardTableWrap {
+  margin-top: 4px;
+}
+
+.todoSection .engineerBoardTable th,
+.todoSection .engineerBoardTable td {
+  padding: 8px 10px;
+}
+
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  font-size: 2rem;
+  margin: 0;
+  color: #ffffff;
+}
+
+.dashboardStatus {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.dashboardSection {
+  margin-bottom: 20px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.dashboardSectionHeader h2 {
+  margin: 0 0 6px;
+  font-size: 1.2rem;
+  color: #ffffff;
+}
+
+.dashboardSectionTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dashboardSectionTitleRow h2 {
+  margin: 0;
+}
+
+.tvEngineerSectionCounter {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dashboardSectionSub {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  color: #94a3b8;
+  max-width: 52rem;
+  line-height: 1.45;
+}
+
+.navLinks {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.navLinks a {
+  color: #93c5fd;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.navLinks a:hover {
+  text-decoration: underline;
+}
+
+.metricCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  max-width: 28rem;
+}
+
+.metricCard h2 {
+  font-size: 1rem;
+  color: #cbd5e1;
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.metricValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.listCard {
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 50vh;
+}
+
+.listCard h3 {
+  font-size: 1.2rem;
+  margin: 0 0 12px;
+}
+
+.listBody {
+  display: grid;
+  gap: 8px;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.listRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-radius: 8px;
+  background: #1f2937;
+  padding: 12px 14px;
+}
+
+.listRowTitle {
+  font-weight: 600;
+}
+
+.listRowMeta {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.errorCard {
+  background: #7f1d1d;
+  border: 1px solid #ef4444;
+  border-radius: 12px;
+  padding: 24px;
+  display: grid;
+  gap: 8px;
+}
+
+.hint {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin-top: 8px;
+}
+
+.dataTableWrap {
+  overflow: auto;
+  max-height: 70vh;
+  border-radius: 12px;
+  border: 1px solid #374151;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.dataTable th,
+.dataTable td {
+  border: 1px solid #334155;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.dataTable th {
+  background: #1e293b;
+  color: #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dataTable tr:nth-child(even) td {
+  background: #111827;
+}
+
+.dataTable tr:nth-child(odd) td {
+  background: #0f172a;
+}
+
+.engineerBoardStack {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.engineerSlider {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.engineerSliderTopProgress {
+  display: none;
+}
+
+.tvEngineerSection .engineerSliderTopProgress,
+.dashboardSectionEngineerLoad .engineerSliderTopProgress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: block;
+  height: 6px;
+  margin: 0;
+}
+
+.engineerSliderTopProgressTrack {
+  width: 100%;
+  height: 100%;
+  background: #334155;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+.engineerSliderTopProgressFill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation-name: engineerSliderTopProgressFill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes engineerSliderTopProgressFill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.engineerSliderMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.engineerSliderNavBtn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.engineerSliderNavBtn:hover {
+  background: #334155;
+  border-color: #64748b;
+  color: #f8fafc;
+}
+
+.engineerSliderNavBtn:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.engineerSliderCounter {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fde68a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.engineerSliderProgressTrack {
+  flex: 1;
+  min-width: 120px;
+  height: 5px;
+  border-radius: 3px;
+  background: #334155;
+  overflow: hidden;
+}
+
+.engineerSliderProgressFill {
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  animation: engineerSlideProgress var(--slide-ms, 30s) linear forwards;
+}
+
+@keyframes engineerSlideProgress {
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+.engineerBoard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 20px 24px;
+  min-height: 40vh;
+}
+
+.engineerBoardEmpty {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.engineerBoardName {
+  margin: 0 0 14px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.engineerBoardTableWrap {
+  overflow: auto;
+  max-height: 70vh;
+  border-radius: 12px;
+  border: 1px solid #334155;
+}
+
+.engineerBoardTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+
+/*
+ * Engineer load — header row colors: .engineerBoardTable th (background / text)
+ */
+
+.engineerBoardTable th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align: left;
+  padding: 14px 16px;
+  background: #070b1b;
+  color: #ffffff;
+  font-weight: 600;
+  border-bottom: 1px solid #070b1b;
+  box-shadow: 0 1px 0 #334155;
+}
+
+.engineerBoardTable td {
+  padding: 12px 16px;
+  color: #e2e8f0;
+  border-bottom: 1px solid #1e293b;
+}
+
+.engineerBoardTable th.engineerBoardTableSerial,
+.engineerBoardTable td.engineerBoardTableSerial {
+  width: 5.5rem;
+  max-width: 5.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.engineerBoardTable td.engineerBoardTableSerial {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.engineerBoardTable tr:nth-child(even) td {
+  background: #111827;
+}
+
+.engineerBoardTable tr:nth-child(odd) td {
+  background: #0f172a;
+}
+
+.engineerBoardTableEmpty {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 20px 16px !important;
+}
+
+.dashboardSection.errorCard {
+  background: #7f1d1d;
+  border-color: #ef4444;
+}
+
+.dashboardSection.errorCard .dashboardSectionHeader h2 {
+  color: #fecaca;
+}

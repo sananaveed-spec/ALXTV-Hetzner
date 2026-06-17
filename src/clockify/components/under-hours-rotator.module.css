@@ -1,0 +1,305 @@
+.section {
+  margin-bottom: 20px;
+  background: #1a1520;
+  border: 1px solid #5b3a4a;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #ffffff;
+}
+
+.sub {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  color: #a8a29e;
+  max-width: 52rem;
+  line-height: 1.45;
+}
+
+.rotator {
+  min-height: 280px;
+}
+
+.compact {
+  height: auto;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 10px 12px;
+}
+
+.compact.rotator {
+  min-height: 0;
+}
+
+.compact .header h2 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.compact .sub {
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.compact .body {
+  flex: 0 0 auto;
+}
+
+.compact .slide {
+  padding: 10px 12px 0;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.compact .slide::after {
+  content: "";
+  display: block;
+  flex-shrink: 0;
+  height: 8px;
+}
+
+.compact .name {
+  font-size: 1.15rem;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+
+.compact .slotList {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.compact .slot {
+  padding: 4px 8px;
+  flex-shrink: 0;
+}
+
+.compact .slotDate {
+  font-size: 0.9rem;
+}
+
+.compact .slotHours {
+  font-size: 0.82rem;
+}
+
+.compact .slotHead {
+  margin-bottom: 4px;
+}
+
+.compact .barTrack {
+  height: 8px;
+}
+
+.compact .navBtnSide {
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 1.4rem;
+}
+
+.body {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.navBtn {
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.navBtnSide {
+  flex: 0 0 auto;
+  align-self: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.navBtn:hover:not(:disabled) {
+  background: #475569;
+  border-color: #64748b;
+}
+
+.navBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.counter {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.slideshowBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 6px;
+  margin: 0;
+}
+
+.slideshowBarTrack {
+  width: 100%;
+  height: 100%;
+  background: #3f3f46;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+.slideshowBarFill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.slideshowBarFillActive {
+  animation-name: slideshowBarFill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.slideshowBarFillComplete {
+  transform: scaleX(1);
+}
+
+@keyframes slideshowBarFill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.slide {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 18px;
+  background: #292524;
+  border-radius: 12px;
+  border: 1px solid #44403c;
+}
+
+.name {
+  margin: 0 0 14px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.pendingTag {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.slotList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.slot {
+  padding: 10px 12px;
+  background: #1c1917;
+  border-radius: 10px;
+  border: 1px solid #44403c;
+}
+
+.slotWarn {
+  border-color: #9a3412;
+  box-shadow: inset 0 0 0 1px #43140755;
+}
+
+.slotHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.slotDate {
+  font-size: 1.05rem;
+  color: #e7e5e4;
+  font-weight: 600;
+}
+
+.slotHours {
+  font-size: 0.95rem;
+  color: #d6d3d1;
+  font-variant-numeric: tabular-nums;
+}
+
+.slotHours strong {
+  color: #fdba74;
+}
+
+.barTrack {
+  position: relative;
+  margin-top: 2px;
+  height: 14px;
+  border-radius: 7px;
+  background: #3f3f46;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #f97316, #fbbf24);
+  min-width: 0;
+  transition: width 0.2s ease;
+}
+
+.barOk {
+  background: linear-gradient(90deg, #22c55e, #4ade80) !important;
+}
+
+.slash {
+  color: #a8a29e;
+}

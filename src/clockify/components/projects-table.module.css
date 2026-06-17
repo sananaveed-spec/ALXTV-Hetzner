@@ -1,0 +1,274 @@
+.section {
+  margin-bottom: 20px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #ffffff;
+}
+
+.sub {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  color: #94a3b8;
+  max-width: 52rem;
+  line-height: 1.45;
+}
+
+.rotator {
+  min-height: 200px;
+}
+
+.compact {
+  height: auto;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+}
+
+.compact.rotator {
+  min-height: 0;
+}
+
+.compact .header h2 {
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.compact .sub {
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.compact.fillContainer .body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.compact .body {
+  flex: 0 0 auto;
+}
+
+.compact .tablePanel {
+  display: block;
+}
+
+.compact .tableWrap {
+  overflow-x: auto;
+}
+
+.fillContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fillContainer .header {
+  flex: 0 0 auto;
+}
+
+.fillContainer .body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.fillContainer .tablePanel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fillContainer .tableWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.compact .table {
+  font-size: 0.82rem;
+}
+
+.compact .table th,
+.compact .table td {
+  padding: 6px 8px;
+}
+
+.compact .navBtnSide {
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 1.4rem;
+}
+
+.body {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.navBtn {
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.navBtnSide {
+  flex: 0 0 auto;
+  align-self: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.navBtn:hover:not(:disabled) {
+  background: #475569;
+  border-color: #64748b;
+}
+
+.navBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.counter {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Slideshow progress bar (mirrors EPS-TV style/behavior). */
+.slideshowBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 6px;
+  margin: 0;
+}
+
+.slideshowBarTrack {
+  width: 100%;
+  height: 100%;
+  background: #334155;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  border: 0;
+}
+
+.slideshowBarFill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.slideshowBarFillActive {
+  animation-name: slideshowBarFill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.slideshowBarFillComplete {
+  transform: scaleX(1);
+}
+
+@keyframes slideshowBarFill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.tablePanel {
+  flex: 1;
+  min-width: 0;
+  padding: 4px;
+  background: #1e293b;
+  border-radius: 12px;
+  border: 1px solid #334155;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #334155;
+}
+
+.table th {
+  background: #0f172a;
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.table td:nth-child(2),
+.table td:nth-child(3),
+.table td:nth-child(4),
+.table th:nth-child(2),
+.table th:nth-child(3),
+.table th:nth-child(4) {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.table tbody tr:hover {
+  background: #1f2937;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 18px 12px;
+}
