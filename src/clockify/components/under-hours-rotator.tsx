@@ -4,7 +4,8 @@ import styles from "@/clockify/components/under-hours-rotator.module.css";
 import { UNDER_HOURS_ROTATE_MS } from "@/clockify/lib/kiosk-timing";
 import { isAllowlistPlaceholderUserId } from "@/clockify/lib/employee-exclusions";
 import type { EmployeeWeekdaySlide } from "@/clockify/lib/under-hours";
-import { useEffect, useRef, useState } from "react";
+import SlideshowNav from "@/components/slideshow-nav";
+import { useSlideshow } from "@/lib/use-slideshow";
 
 const ROTATE_MS = UNDER_HOURS_ROTATE_MS;
 
@@ -12,117 +13,28 @@ function formatHours(seconds: number): string {
   return `${(seconds / 3600).toFixed(2)}h`;
 }
 
-function SlideshowProgressBar({
-  slideCount,
-  activeIndex,
-  durationMs,
-  shouldAnimate,
-}: {
-  slideCount: number;
-  activeIndex: number;
-  durationMs: number;
-  shouldAnimate: boolean;
-}) {
-  if (slideCount < 2) {
-    return null;
-  }
-
-  return (
-    <div
-      className={styles.slideshowBar}
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={shouldAnimate ? 0 : 100}
-      aria-label={`Slide ${activeIndex + 1} of ${slideCount}`}
-    >
-      <div className={styles.slideshowBarTrack}>
-        <div
-          key={shouldAnimate ? `${activeIndex}-${durationMs}` : "static"}
-          className={`${styles.slideshowBarFill} ${
-            shouldAnimate
-              ? styles.slideshowBarFillActive
-              : styles.slideshowBarFillComplete
-          }`}
-          style={
-            shouldAnimate ? { animationDuration: `${durationMs}ms` } : undefined
-          }
-        />
-      </div>
-    </div>
-  );
-}
-
 export default function UnderHoursRotator({
   slides,
-  onCycleComplete,
   compact = false,
   autoplayEnabled = true,
   syncTick,
+  onCycleComplete,
 }: {
   slides: EmployeeWeekdaySlide[];
-  /** Fires after the last slide has been shown and the rotator wraps to the first. */
-  onCycleComplete?: () => void;
   compact?: boolean;
   autoplayEnabled?: boolean;
   syncTick?: number;
+  onCycleComplete?: () => void;
 }) {
-  const [index, setIndex] = useState(0);
   const n = slides.length;
-  const prevIndexRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    setIndex((i) => (n > 0 ? Math.min(i, n - 1) : 0));
-  }, [n]);
-
-  useEffect(() => {
-    if (!autoplayEnabled || n <= 1) {
-      prevIndexRef.current = index;
-      return;
-    }
-    if (
-      prevIndexRef.current !== null &&
-      prevIndexRef.current === n - 1 &&
-      index === 0
-    ) {
-      onCycleComplete?.();
-    }
-    prevIndexRef.current = index;
-  }, [index, n, autoplayEnabled, onCycleComplete]);
-
-  useEffect(() => {
-    if (!autoplayEnabled || n <= 1) {
-      return;
-    }
-    if (typeof syncTick === "number") {
-      return;
-    }
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % n);
-    }, ROTATE_MS);
-    return () => window.clearInterval(id);
-  }, [n, autoplayEnabled, syncTick]);
-
-  const lastSyncTickRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (typeof syncTick !== "number") {
-      return;
-    }
-    if (n <= 1) {
-      lastSyncTickRef.current = syncTick;
-      return;
-    }
-    if (lastSyncTickRef.current === null) {
-      lastSyncTickRef.current = syncTick;
-      return;
-    }
-    if (syncTick === lastSyncTickRef.current) {
-      return;
-    }
-    lastSyncTickRef.current = syncTick;
-    setIndex((i) => (i + 1) % n);
-  }, [syncTick, n]);
+  const { index, goPrev, goNext, timerEpoch } = useSlideshow({
+    count: n,
+    slideMs: ROTATE_MS,
+    autoplayEnabled,
+    syncTick,
+    onCycleComplete,
+  });
 
   if (n === 0) {
     return (
@@ -138,26 +50,25 @@ export default function UnderHoursRotator({
   }
 
   const current = slides[index]!;
-  const shouldAnimate =
-    n > 1 && (autoplayEnabled || typeof syncTick === "number");
 
   return (
     <section
       className={`${styles.section} ${styles.rotator} ${compact ? styles.compact : ""}`}
     >
-      <SlideshowProgressBar
-        slideCount={n}
-        activeIndex={index}
-        durationMs={ROTATE_MS}
-        shouldAnimate={shouldAnimate}
-      />
       <div className={styles.header}>
         <div className={styles.headerTop}>
           <h2>Last 7 Days Reported Hours</h2>
-          <span className={styles.counter}>
-            {index + 1} / {n}
-          </span>
         </div>
+        <SlideshowNav
+          index={index}
+          count={n}
+          slideMs={ROTATE_MS}
+          onPrev={goPrev}
+          onNext={goNext}
+          progressKey={`${index}-${timerEpoch}`}
+          compact={compact}
+          className={styles.slideshowNav}
+        />
         {!compact ? (
           <p className={styles.sub}>
             Weekday hours in the last 7 days (workspace timezone). Auto-advances

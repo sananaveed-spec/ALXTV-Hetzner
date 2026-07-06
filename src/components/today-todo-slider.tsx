@@ -5,15 +5,10 @@ import {
   TODAY_TODO_SLIDE_MS,
 } from "@/lib/kiosk-timing";
 import type { TodayTodoRow } from "@/lib/today-todo-parse";
+import SlideshowNav from "@/components/slideshow-nav";
+import { useSlideshow } from "@/lib/use-slideshow";
 import { useRouter } from "next/navigation";
-import {
-  type CSSProperties,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useMemo } from "react";
 
 type Props = {
   rows: TodayTodoRow[];
@@ -82,86 +77,13 @@ export default function TodayTodoSlider({
     [rows, rowsPerPage, showAllRows],
   );
   const count = pages.length;
-  const [index, setIndex] = useState(0);
-  const [timerEpoch, setTimerEpoch] = useState(0);
-  const countRef = useRef(count);
 
-  useEffect(() => {
-    countRef.current = count;
-  }, [count]);
-
-  useEffect(() => {
-    setIndex((i) => Math.min(i, Math.max(0, count - 1)));
-  }, [count]);
-
-  const prevIndexRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (count <= 1) {
-      prevIndexRef.current = index;
-      return;
-    }
-    if (
-      prevIndexRef.current !== null &&
-      prevIndexRef.current === count - 1 &&
-      index === 0
-    ) {
-      router.refresh();
-    }
-    prevIndexRef.current = index;
-  }, [index, count, router]);
-
-  const advanceSlide = useCallback(() => {
-    setIndex((currentIndex) => {
-      const pageCount = countRef.current;
-      if (pageCount <= 1) {
-        return 0;
-      }
-      return (currentIndex + 1) % pageCount;
-    });
-  }, []);
-
-  useEffect(() => {
-    if (count <= 1) {
-      return;
-    }
-
-    let cancelled = false;
-    let timeoutId = 0;
-
-    const scheduleNext = () => {
-      timeoutId = window.setTimeout(() => {
-        if (cancelled) {
-          return;
-        }
-        advanceSlide();
-        scheduleNext();
-      }, safeSlideMs);
-    };
-
-    scheduleNext();
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [count, safeSlideMs, advanceSlide, timerEpoch]);
-
-  const goPrev = useCallback(() => {
-    if (count <= 1) {
-      return;
-    }
-    setIndex((i) => (i - 1 + count) % count);
-    setTimerEpoch((e) => e + 1);
-  }, [count]);
-
-  const goNext = useCallback(() => {
-    if (count <= 1) {
-      return;
-    }
-    advanceSlide();
-    setTimerEpoch((e) => e + 1);
-  }, [count, advanceSlide]);
+  const { index, goPrev, goNext, timerEpoch } = useSlideshow({
+    count,
+    slideMs: safeSlideMs,
+    autoplayEnabled: !showAllRows,
+    onCycleComplete: () => router.refresh(),
+  });
 
   if (rows.length === 0) {
     return (
@@ -190,40 +112,15 @@ export default function TodayTodoSlider({
 
   return (
     <div className="engineerSlider">
-      {!showAllRows && count > 1 ? (
-        <div className="engineerSliderMeta">
-          <button
-            type="button"
-            className="engineerSliderNavBtn"
-            onClick={goPrev}
-            aria-label="Previous page"
-          >
-            {"<"}
-          </button>
-          <span className="engineerSliderCounter">
-            {index + 1} / {count}
-          </span>
-          <div
-            className="engineerSliderProgressTrack"
-            aria-hidden
-            key={index}
-            style={
-              {
-                "--slide-ms": `${safeSlideMs}ms`,
-              } as CSSProperties
-            }
-          >
-            <div className="engineerSliderProgressFill" />
-          </div>
-          <button
-            type="button"
-            className="engineerSliderNavBtn"
-            onClick={goNext}
-            aria-label="Next page"
-          >
-            {">"}
-          </button>
-        </div>
+      {!showAllRows ? (
+        <SlideshowNav
+          index={index}
+          count={count}
+          slideMs={safeSlideMs}
+          onPrev={goPrev}
+          onNext={goNext}
+          progressKey={`${index}-${timerEpoch}`}
+        />
       ) : null}
 
       <TodoTable pageRows={currentPage} />

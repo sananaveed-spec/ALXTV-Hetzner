@@ -2,8 +2,10 @@
 
 import type { ProjectHoursRow } from "@/clockify/lib/project-hours";
 import { UNDER_HOURS_ROTATE_MS } from "@/clockify/lib/kiosk-timing";
+import SlideshowNav from "@/components/slideshow-nav";
 import { useFitRowCount } from "@/lib/use-fit-row-count";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useSlideshow } from "@/lib/use-slideshow";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./projects-table.module.css";
 
 const DEFAULT_ROWS_PER_PAGE = 10;
@@ -17,8 +19,6 @@ type Props = {
   fillContainer?: boolean;
   autoplayEnabled?: boolean;
   syncTick?: number;
-  /** Bumped when the project rotator phase begins (restarts slide 1 progress). */
-  phaseEpoch?: number;
   onCycleComplete?: () => void;
 };
 
@@ -26,12 +26,39 @@ function formatHours(seconds: number): string {
   return `${(seconds / 3600).toFixed(2)}h`;
 }
 
-function formatPercentage(trackedSeconds: number, estimateSeconds: number): string {
+function getCompletionPct(
+  trackedSeconds: number,
+  estimateSeconds: number,
+): number | null {
   if (estimateSeconds <= 0) {
+    return null;
+  }
+  return (trackedSeconds / estimateSeconds) * 100;
+}
+
+function formatPercentage(trackedSeconds: number, estimateSeconds: number): string {
+  const pct = getCompletionPct(trackedSeconds, estimateSeconds);
+  if (pct === null) {
     return "—";
   }
-  const pct = (trackedSeconds / estimateSeconds) * 100;
   return `${Math.round(pct)}%`;
+}
+
+function getPercentageColorClass(
+  trackedSeconds: number,
+  estimateSeconds: number,
+): string | undefined {
+  const pct = getCompletionPct(trackedSeconds, estimateSeconds);
+  if (pct === null) {
+    return undefined;
+  }
+  if (pct <= 100) {
+    return styles.pctGreen;
+  }
+  if (pct <= 150) {
+    return styles.pctYellow;
+  }
+  return styles.pctRed;
 }
 
 function chunkRows(rows: ProjectHoursRow[], pageSize: number): ProjectHoursRow[][] {
@@ -42,52 +69,12 @@ function chunkRows(rows: ProjectHoursRow[], pageSize: number): ProjectHoursRow[]
   return pages;
 }
 
-function SlideshowProgressBar({
-  slideCount,
-  activeIndex,
-  durationMs,
-  shouldAnimate,
-}: {
-  slideCount: number;
-  activeIndex: number;
-  durationMs: number;
-  shouldAnimate: boolean;
-}) {
-  if (slideCount < 2) {
-    return null;
-  }
-
-  return (
-    <div
-      className={styles.slideshowBar}
-      role="progressbar"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={shouldAnimate ? 0 : 100}
-      aria-label={`Slide ${activeIndex + 1} of ${slideCount}`}
-    >
-      <div className={styles.slideshowBarTrack}>
-        <div
-          key={shouldAnimate ? `${activeIndex}-${durationMs}` : "static"}
-          className={`${styles.slideshowBarFill} ${
-            shouldAnimate
-              ? styles.slideshowBarFillActive
-              : styles.slideshowBarFillComplete
-          }`}
-          style={shouldAnimate ? { animationDuration: `${durationMs}ms` } : undefined}
-        />
-      </div>
-    </div>
-  );
-}
-
 export default function ProjectsTable({
   rows,
   compact = false,
   fillContainer = false,
-  autoplayEnabled = false,
+  autoplayEnabled = true,
   syncTick,
-  phaseEpoch = 0,
   onCycleComplete,
 }: Props) {
   const { ref: fillRef, rowCount: fitRowCount } = useFitRowCount({
@@ -98,110 +85,41 @@ export default function ProjectsTable({
 
   const rowsPerPage = fillContainer ? fitRowCount : DEFAULT_ROWS_PER_PAGE;
   const pages = useMemo(() => chunkRows(rows, rowsPerPage), [rows, rowsPerPage]);
-  const [index, setIndex] = useState(0);
   const n = pages.length;
-  const lastSyncTickRef = useRef<number | null>(null);
-  const prevIndexRef = useRef<number | null>(null);
-
-  const slideClockKey = `${phaseEpoch}-${index}-${rowsPerPage}`;
+  const [rowsPerPageSnapshot, setRowsPerPageSnapshot] = useState(rowsPerPage);
 
   useEffect(() => {
-    setIndex((i) => (n > 0 ? Math.min(i, n - 1) : 0));
-  }, [n]);
+    setRowsPerPageSnapshot(rowsPerPage);
+  }, [rowsPerPage]);
 
-  useEffect(() => {
-    if (!autoplayEnabled || n <= 1) {
-      prevIndexRef.current = index;
-      return;
-    }
-    if (
-      prevIndexRef.current !== null &&
-      prevIndexRef.current === n - 1 &&
-      index === 0
-    ) {
-      onCycleComplete?.();
-    }
-    prevIndexRef.current = index;
-  }, [index, n, autoplayEnabled, onCycleComplete]);
-
-  useEffect(() => {
-    if (!autoplayEnabled || n <= 1) {
-      return;
-    }
-    if (typeof syncTick === "number") {
-      return;
-    }
-
-    const advanceTimer = window.setTimeout(() => {
-      setIndex((current) => (current + 1) % n);
-    }, ROTATE_MS);
-
-    return () => {
-      window.clearTimeout(advanceTimer);
-    };
-  }, [slideClockKey, autoplayEnabled, n, syncTick]);
-
-  useEffect(() => {
-    if (typeof syncTick !== "number") {
-      return;
-    }
-    if (n <= 1) {
-      lastSyncTickRef.current = syncTick;
-      return;
-    }
-    if (lastSyncTickRef.current === null) {
-      lastSyncTickRef.current = syncTick;
-      return;
-    }
-    if (syncTick === lastSyncTickRef.current) {
-      return;
-    }
-    lastSyncTickRef.current = syncTick;
-    setIndex((current) => (current + 1) % n);
-  }, [syncTick, n]);
-
-  useEffect(() => {
-    if (!autoplayEnabled || n !== 1) {
-      return;
-    }
-    const id = window.setTimeout(() => {
-      onCycleComplete?.();
-    }, ROTATE_MS);
-    return () => window.clearTimeout(id);
-  }, [slideClockKey, autoplayEnabled, n, onCycleComplete]);
-
-  useEffect(() => {
-    if (!autoplayEnabled || n !== 0) {
-      return;
-    }
-    const id = window.setTimeout(() => {
-      onCycleComplete?.();
-    }, ROTATE_MS);
-    return () => window.clearTimeout(id);
-  }, [slideClockKey, autoplayEnabled, n, onCycleComplete]);
+  const { index, goPrev, goNext, timerEpoch } = useSlideshow({
+    count: n,
+    slideMs: ROTATE_MS,
+    autoplayEnabled,
+    syncTick,
+    onCycleComplete,
+  });
 
   const currentRows = pages[index] ?? [];
-  const shouldAnimate =
-    n > 1 && (autoplayEnabled || typeof syncTick === "number");
 
   return (
     <section
       className={`${styles.section} ${styles.rotator} ${compact ? styles.compact : ""} ${fillContainer ? styles.fillContainer : ""}`}
     >
-      <SlideshowProgressBar
-        slideCount={n}
-        activeIndex={index}
-        durationMs={ROTATE_MS}
-        shouldAnimate={shouldAnimate}
-      />
       <div className={styles.header}>
-        <div className={styles.headerTop}>
+        <div className={styles.headerRow}>
           <h2>Project Performance</h2>
-          {n > 0 ? (
-            <span className={styles.counter}>
-              {index + 1} / {n}
-            </span>
-          ) : null}
+          <SlideshowNav
+            index={index}
+            count={n}
+            slideMs={ROTATE_MS}
+            onPrev={goPrev}
+            onNext={goNext}
+            progressKey={`${index}-${timerEpoch}-${rowsPerPageSnapshot}`}
+            layout="inline"
+            compact={compact}
+            className={styles.headerNav}
+          />
         </div>
         {!fillContainer ? (
           <p className={styles.sub}>
@@ -233,7 +151,13 @@ export default function ProjectsTable({
                   </thead>
                   <tbody>
                     {currentRows.map((row) => (
-                      <tr key={row.projectId}>
+                      <tr
+                        key={row.projectId}
+                        className={getPercentageColorClass(
+                          row.trackedSeconds,
+                          row.estimateSeconds,
+                        )}
+                      >
                         <td>{row.name}</td>
                         <td>{formatHours(row.estimateSeconds)}</td>
                         <td>{formatHours(row.trackedSeconds)}</td>

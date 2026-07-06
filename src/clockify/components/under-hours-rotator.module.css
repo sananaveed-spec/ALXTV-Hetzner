@@ -16,6 +16,10 @@
   margin-bottom: 6px;
 }
 
+.compact .headerTop h2 {
+  font-size: 1rem;
+}
+
 .header h2 {
   margin: 0;
   font-size: 1.2rem;
@@ -45,11 +49,6 @@
 
 .compact.rotator {
   min-height: 0;
-}
-
-.compact .header h2 {
-  font-size: 1rem;
-  margin-bottom: 4px;
 }
 
 .compact .sub {
@@ -162,6 +161,10 @@
   color: #94a3b8;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.slideshowNav {
+  margin-bottom: 8px;
 }
 
 .slideshowBar {

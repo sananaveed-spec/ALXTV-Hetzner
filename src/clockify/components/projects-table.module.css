@@ -16,6 +16,35 @@
   margin-bottom: 6px;
 }
 
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  min-height: 32px;
+}
+
+.headerRow h2 {
+  margin: 0;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.headerNav {
+  flex: 1;
+  min-width: 0;
+}
+
+.compact .headerRow {
+  gap: 8px;
+  margin-bottom: 6px;
+  min-height: 28px;
+}
+
+.compact .headerRow h2 {
+  font-size: 1rem;
+}
+
 .header h2 {
   margin: 0;
   font-size: 1.2rem;
@@ -46,9 +75,8 @@
   min-height: 0;
 }
 
-.compact .header h2 {
+.compact .headerRow h2 {
   font-size: 1rem;
-  margin-bottom: 4px;
 }
 
 .compact .sub {
@@ -170,6 +198,10 @@
   white-space: nowrap;
 }
 
+.slideshowNav {
+  margin-bottom: 0;
+}
+
 /* Slideshow progress bar (mirrors EPS-TV style/behavior). */
 .slideshowBar {
   position: absolute;
@@ -271,4 +303,22 @@
   text-align: center;
   color: #94a3b8;
   padding: 18px 12px;
+}
+
+.table tbody tr.pctGreen td,
+.table tbody tr.pctYellow td,
+.table tbody tr.pctRed td {
+  font-weight: 600;
+}
+
+.table tbody tr.pctGreen td {
+  color: #4ade80;
+}
+
+.table tbody tr.pctYellow td {
+  color: #fbbf24;
+}
+
+.table tbody tr.pctRed td {
+  color: #f87171;
 }

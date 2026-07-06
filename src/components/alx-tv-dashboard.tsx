@@ -59,10 +59,6 @@ import styles from "./alx-tv-dashboard.module.css";
 
 const LOAD_TIMEOUT_MS = 180_000;
 
-const PROJECTS_PHASE_STORAGE_KEY = "alx-tv-projects-phase-started";
-
-const RELOAD_DELAY_MS = 2_000;
-
 const LIVE_DATA_POLL_MS = 60_000;
 
 
@@ -150,12 +146,6 @@ export default function AlxTvDashboard({
 
   const [loadingSeconds, setLoadingSeconds] = useState(0);
 
-  const [projectsPhaseActive, setProjectsPhaseActive] = useState(false);
-
-  const [projectsPhaseEpoch, setProjectsPhaseEpoch] = useState(0);
-
-  const [resumeProjectsPhase, setResumeProjectsPhase] = useState(false);
-
   const [sharedSlideTick, setSharedSlideTick] = useState(0);
 
   const refreshingRef = useRef(false);
@@ -193,78 +183,12 @@ export default function AlxTvDashboard({
   }, [initialGoogleSheet]);
 
   useEffect(() => {
-
     const id = window.setInterval(() => {
-
       setSharedSlideTick((t) => t + 1);
-
     }, UNDER_HOURS_ROTATE_MS);
 
     return () => window.clearInterval(id);
-
   }, []);
-
-
-
-  useEffect(() => {
-
-    try {
-
-      setResumeProjectsPhase(
-
-        window.sessionStorage.getItem(PROJECTS_PHASE_STORAGE_KEY) === "1",
-
-      );
-
-    } catch {
-
-      setResumeProjectsPhase(false);
-
-    }
-
-  }, []);
-
-
-
-  const startProjectsPhase = useCallback(() => {
-
-    try {
-
-      window.sessionStorage.setItem(PROJECTS_PHASE_STORAGE_KEY, "1");
-
-    } catch {
-
-      // ignore storage failures (private mode / disabled storage)
-
-    }
-
-    setProjectsPhaseEpoch((e) => e + 1);
-
-    setProjectsPhaseActive(true);
-
-  }, []);
-
-
-
-  const resetCarouselCycle = useCallback(() => {
-
-    try {
-
-      window.sessionStorage.removeItem(PROJECTS_PHASE_STORAGE_KEY);
-
-    } catch {
-
-      // ignore storage failures
-
-    }
-
-    setProjectsPhaseActive(false);
-
-    setResumeProjectsPhase(false);
-
-  }, []);
-
-
 
   const fetchClockify = useCallback(async (): Promise<DashboardSnapshot> => {
 
@@ -410,42 +334,6 @@ export default function AlxTvDashboard({
     }
   }, [fetchClockify, fetchGoogleSheet]);
 
-  const refreshGoogleSheetOnly = useCallback(async () => {
-    if (refreshingRef.current) {
-      return;
-    }
-    refreshingRef.current = true;
-    try {
-      const sheet = await fetchGoogleSheet();
-      const nextSignature = googleSheetSignature(sheet);
-      if (nextSignature !== googleSheetSignatureRef.current) {
-        googleSheetSignatureRef.current = nextSignature;
-        setGoogleSheet(sheet);
-        if (sheet.ok) {
-          writeStoredGoogleSheet(sheet);
-        }
-        setLiveUpdatedAt(new Date().toISOString());
-        setRefreshEpoch((epoch) => epoch + 1);
-      }
-    } catch {
-      const staleSheet = readStoredGoogleSheet<AlxTvGoogleSheetData>();
-      if (staleSheet && isGoogleSheetData(staleSheet) && staleSheet.ok) {
-        setGoogleSheet(staleSheet);
-        googleSheetSignatureRef.current = googleSheetSignature(staleSheet);
-      }
-    } finally {
-      refreshingRef.current = false;
-    }
-  }, [fetchGoogleSheet]);
-
-  const reloadAfterProjectsCycle = useCallback(() => {
-    window.setTimeout(() => {
-      resetCarouselCycle();
-    }, RELOAD_DELAY_MS);
-  }, [resetCarouselCycle]);
-
-
-
   const loadInitial = useCallback(async () => {
     if (hadCachedPreviewRef.current) {
       setIsRefreshing(true);
@@ -586,44 +474,6 @@ export default function AlxTvDashboard({
 
 
 
-  useEffect(() => {
-
-    if (!data || projectsPhaseActive) {
-
-      return;
-
-    }
-
-    if (resumeProjectsPhase) {
-
-      startProjectsPhase();
-
-      return;
-
-    }
-
-    if (rotatorSlides.length <= 1) {
-
-      startProjectsPhase();
-
-    }
-
-  }, [
-
-    data,
-
-    rotatorSlides.length,
-
-    projectsPhaseActive,
-
-    resumeProjectsPhase,
-
-    startProjectsPhase,
-
-  ]);
-
-
-
   if (loading && !data) {
 
     return (
@@ -759,9 +609,6 @@ export default function AlxTvDashboard({
             rows={data.projects}
             compact
             fillContainer
-            autoplayEnabled={projectsPhaseActive}
-            phaseEpoch={projectsPhaseEpoch}
-            onCycleComplete={reloadAfterProjectsCycle}
             syncTick={sharedSlideTick}
           />
         </div>
@@ -771,10 +618,8 @@ export default function AlxTvDashboard({
           <div className={styles.centerEmployees}>
             <UnderHoursRotator
               slides={rotatorSlides}
-              onCycleComplete={startProjectsPhase}
-              autoplayEnabled={!projectsPhaseActive}
-              syncTick={sharedSlideTick}
               compact
+              syncTick={sharedSlideTick}
             />
           </div>
         </div>
@@ -782,7 +627,6 @@ export default function AlxTvDashboard({
         <AlxTvWorkloadColumn
           googleSheet={googleSheet}
           sharedSlideTick={sharedSlideTick}
-          onEngineerCycleComplete={refreshGoogleSheetOnly}
         />
       </div>
 

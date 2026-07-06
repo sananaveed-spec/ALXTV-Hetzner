@@ -126,6 +126,63 @@ export function MonthVsMonthGroup({
   );
 }
 
+function BillablePieChart({
+  billableSeconds,
+  nonBillableSeconds,
+}: {
+  billableSeconds: number;
+  nonBillableSeconds: number;
+}) {
+  const share = getTimeSharePercents(billableSeconds, nonBillableSeconds);
+  const total = billableSeconds + nonBillableSeconds;
+  const billablePct = total > 0 ? (billableSeconds / total) * 100 : 0;
+  const background =
+    total > 0
+      ? `conic-gradient(#22c55e 0 ${billablePct}%, #f59e0b ${billablePct}% 100%)`
+      : "#0f172a";
+
+  return (
+    <div
+      className={styles.billablePieChart}
+      style={{ background }}
+      role="img"
+      aria-label={`Billable ${share.billable}, Non-Billable ${share.nonBillable}`}
+    />
+  );
+}
+
+function PeriodPieColumn({
+  label,
+  week,
+}: {
+  label: string;
+  week: WeekBillableHours;
+}) {
+  const share = getTimeSharePercents(
+    week.billableSeconds,
+    week.nonBillableSeconds,
+  );
+
+  return (
+    <div className={styles.weekComparePieColumn}>
+      <span className={styles.weekComparePeriodLabel}>{label}</span>
+      <BillablePieChart
+        billableSeconds={week.billableSeconds}
+        nonBillableSeconds={week.nonBillableSeconds}
+      />
+      <ul className={styles.pieLegend}>
+        <li className={styles.pieLegendBillable}>
+          Billable {share.billable} ({formatDurationClockify(week.billableSeconds)} h)
+        </li>
+        <li className={styles.pieLegendNonBillable}>
+          Non-Billable {share.nonBillable} ({formatDurationClockify(week.nonBillableSeconds)} h)
+        </li>
+      </ul>
+      <span className={styles.metricHint}>{week.rangeLabel}</span>
+    </div>
+  );
+}
+
 function PeriodVsPeriodGroup({
   title,
   currentLabel,
@@ -139,58 +196,12 @@ function PeriodVsPeriodGroup({
   previousLabel: string;
   previous: WeekBillableHours;
 }) {
-  const thisWeekShare = getTimeSharePercents(
-    current.billableSeconds,
-    current.nonBillableSeconds,
-  );
-  const lastWeekShare = getTimeSharePercents(
-    previous.billableSeconds,
-    previous.nonBillableSeconds,
-  );
-
   return (
     <article className={`${styles.metricCard} ${styles.metricCardWeekGroup}`}>
       <h2>{title}</h2>
-      <div className={styles.weekCompareRows}>
-        <div className={styles.weekCompareRow}>
-          <div className={styles.weekCompareHead}>
-            <span className={styles.weekComparePeriodLabel}>{currentLabel}</span>
-            <span className={styles.weekCompareValuesInline}>
-              Billable {thisWeekShare.billable} ({formatDurationClockify(current.billableSeconds)} h) · Non-Billable {thisWeekShare.nonBillable} ({formatDurationClockify(current.nonBillableSeconds)} h)
-            </span>
-            <span className={styles.metricHint}>{current.rangeLabel}</span>
-          </div>
-          <div className={styles.weekCompareTrack} aria-hidden>
-            <div
-              className={styles.weekCompareBillable}
-              style={{ width: thisWeekShare.billable }}
-            />
-            <div
-              className={styles.weekCompareNonBillable}
-              style={{ width: thisWeekShare.nonBillable }}
-            />
-          </div>
-        </div>
-
-        <div className={styles.weekCompareRow}>
-          <div className={styles.weekCompareHead}>
-            <span className={styles.weekComparePeriodLabel}>{previousLabel}</span>
-            <span className={styles.weekCompareValuesInline}>
-              Billable {lastWeekShare.billable} ({formatDurationClockify(previous.billableSeconds)} h) · Non-Billable {lastWeekShare.nonBillable} ({formatDurationClockify(previous.nonBillableSeconds)} h)
-            </span>
-            <span className={styles.metricHint}>{previous.rangeLabel}</span>
-          </div>
-          <div className={styles.weekCompareTrack} aria-hidden>
-            <div
-              className={styles.weekCompareBillable}
-              style={{ width: lastWeekShare.billable }}
-            />
-            <div
-              className={styles.weekCompareNonBillable}
-              style={{ width: lastWeekShare.nonBillable }}
-            />
-          </div>
-        </div>
+      <div className={styles.weekComparePies}>
+        <PeriodPieColumn label={currentLabel} week={current} />
+        <PeriodPieColumn label={previousLabel} week={previous} />
       </div>
     </article>
   );

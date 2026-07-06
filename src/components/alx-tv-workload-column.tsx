@@ -9,13 +9,11 @@ import styles from "./alx-tv-dashboard.module.css";
 type Props = {
   googleSheet: AlxTvGoogleSheetData;
   sharedSlideTick?: number;
-  onEngineerCycleComplete?: () => void;
 };
 
 export default function AlxTvWorkloadColumn({
   googleSheet,
   sharedSlideTick,
-  onEngineerCycleComplete,
 }: Props) {
   const [engineerSlideMeta, setEngineerSlideMeta] = useState({
     index: 0,
@@ -65,7 +63,6 @@ export default function AlxTvWorkloadColumn({
             slideMs={googleSheet.engineerSlideMs}
             onSlideMetaChange={handleEngineerSlideMetaChange}
             syncTick={sharedSlideTick}
-            onCycleComplete={onEngineerCycleComplete}
           />
         </div>
       </DashboardSection>

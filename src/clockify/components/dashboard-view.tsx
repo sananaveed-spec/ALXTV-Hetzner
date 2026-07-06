@@ -136,12 +136,6 @@ export default function DashboardView() {
       setLoading(false);
     }
   }, []);
-  const reloadAfterEmployeeCycle = useCallback(() => {
-    window.setTimeout(() => {
-      window.location.reload();
-    }, 2000);
-  }, []);
-
   const load = useCallback(async () => {
     const hadPreview = Boolean(readStoredClockifySnapshot());
     if (hadPreview) {
@@ -296,7 +290,6 @@ export default function DashboardView() {
       <div className={styles.kioskEmployees}>
         <UnderHoursRotator
           slides={rotatorSlides}
-          onCycleComplete={reloadAfterEmployeeCycle}
           compact
         />
       </div>

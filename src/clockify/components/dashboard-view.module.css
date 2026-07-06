@@ -153,6 +153,67 @@
   color: #fbbf24;
 }
 
+.weekComparePies {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.weekComparePieColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  min-width: 0;
+}
+
+.billablePieChart {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 2px solid #475569;
+  flex-shrink: 0;
+}
+
+.pieLegend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pieLegendBillable,
+.pieLegendNonBillable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pieLegendBillable::before,
+.pieLegendNonBillable::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.pieLegendBillable::before {
+  background: #22c55e;
+}
+
+.pieLegendNonBillable::before {
+  background: #f59e0b;
+}
+
 .weekCompareRows {
   display: grid;
   gap: 20px;
