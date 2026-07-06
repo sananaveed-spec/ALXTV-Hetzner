@@ -8,11 +8,15 @@ import type { EngineerLoadBoard } from "@/lib/engineer-load-parse";
 import { useSlideshow } from "@/lib/use-slideshow";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
+import styles from "./engineer-load-slider.module.css";
 
 type Props = {
   boards: EngineerLoadBoard[];
   slideMs?: number;
   syncTick?: number;
+  /** Single-line header: title + slideshow controls (like Project Performance). */
+  inlineHeader?: boolean;
+  title?: string;
   onSlideMetaChange?: (meta: {
     index: number;
     count: number;
@@ -39,6 +43,8 @@ export default function EngineerLoadSlider({
   boards,
   slideMs,
   syncTick,
+  inlineHeader = false,
+  title = "Engineer Workload",
   onSlideMetaChange,
   onCycleComplete,
 }: Props) {
@@ -73,17 +79,30 @@ export default function EngineerLoadSlider({
 
   const current = boards[index]!;
 
+  const nav = (
+    <SlideshowNav
+      index={index}
+      count={count}
+      slideMs={progressMs}
+      onPrev={goPrev}
+      onNext={goNext}
+      progressKey={`${index}-${timerEpoch}`}
+      layout={inlineHeader ? "inline" : "stacked"}
+      compact
+      className={inlineHeader ? styles.headerNav : undefined}
+    />
+  );
+
   return (
     <div className="engineerSlider">
-      <SlideshowNav
-        index={index}
-        count={count}
-        slideMs={progressMs}
-        onPrev={goPrev}
-        onNext={goNext}
-        progressKey={`${index}-${timerEpoch}`}
-        compact
-      />
+      {inlineHeader ? (
+        <div className={styles.headerRow}>
+          <h2>{title}</h2>
+          {nav}
+        </div>
+      ) : (
+        nav
+      )}
       <EngineerSlot key={`${index}-${current.name}`} board={current} />
     </div>
   );

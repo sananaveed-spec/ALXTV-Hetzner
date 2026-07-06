@@ -94,12 +94,14 @@ export default async function GoogleSheetPanelPage() {
         />
       )}
 
-      <DashboardSection
-        title="Engineer Workload"
-        className="dashboardSectionEngineerLoad"
-      >
-        <EngineerLoadSlider boards={engineerPayload.boards} slideMs={slideMs} />
-      </DashboardSection>
+      <section className="dashboardSection dashboardSectionEngineerLoad">
+        <EngineerLoadSlider
+          boards={engineerPayload.boards}
+          slideMs={slideMs}
+          inlineHeader
+          title="Engineer Workload"
+        />
+      </section>
     </main>
   );
 }
