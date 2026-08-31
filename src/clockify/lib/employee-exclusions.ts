@@ -1,6 +1,6 @@
 /**
- * Only these Clockify users appear on the dashboard (present, absent, weekly,
- * rotator, and billable totals). Names must match Clockify display names.
+ * Only these Timesheets users appear on the dashboard (present, absent, weekly,
+ * rotator, and billable totals). Names must match Timesheets display names.
  */
 const DASHBOARD_ALLOWLIST = [
   "Areeb",

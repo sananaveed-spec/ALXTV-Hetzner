@@ -220,7 +220,7 @@ export default function AlxTvDashboard({
 
     if (!isDashboardSnapshot(snapshot)) {
 
-      throw new Error("Server returned outdated Clockify data.");
+      throw new Error("Server returned outdated Timesheets data.");
 
     }
 
@@ -532,7 +532,7 @@ export default function AlxTvDashboard({
 
         <section className={clockifyStyles.errorCard}>
 
-          <p>Could not load Clockify data.</p>
+          <p>Could not load Timesheets data.</p>
 
           <p>{error}</p>
 

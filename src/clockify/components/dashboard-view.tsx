@@ -228,7 +228,7 @@ export default function DashboardView() {
           statusCenter="Loading dashboard…"
         />
         <section className={styles.metricCard}>
-          <p>Fetching attendance and projects from Clockify.</p>
+          <p>Fetching attendance and projects from Timesheets.</p>
           <p className={styles.metricHint}>
             {loadingSeconds > 0
               ? `Still loading… ${loadingSeconds}s (usually under 30s)`

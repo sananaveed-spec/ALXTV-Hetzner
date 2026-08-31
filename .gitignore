@@ -19,3 +19,7 @@ yarn-error.log*
 .DS_Store
 *.pem
 .vercel
+tsconfig.tsbuildinfo
+
+# Google service account keys (never commit)
+alx-automation-dashboard-*.json

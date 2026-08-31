@@ -1,4 +1,8 @@
 import { buildDashboardSnapshot, type DashboardSnapshot } from "@/clockify/lib/attendance";
+import {
+  getClockifyConfig,
+  getClockifyTimezone,
+} from "@/clockify/lib/clockify";
 import { createStaleCache } from "@/lib/stale-data-cache";
 import { NextResponse } from "next/server";
 
@@ -7,11 +11,10 @@ export const maxDuration = 300;
 const attendanceCache = createStaleCache<DashboardSnapshot>();
 
 export async function GET() {
-  const apiKey = process.env.CLOCKIFY_API_KEY;
-  const workspaceId = process.env.CLOCKIFY_WORKSPACE_ID;
-  const timezone = process.env.CLOCKIFY_WORKSPACE_TIMEZONE ?? "UTC";
+  const config = getClockifyConfig();
+  const timezone = getClockifyTimezone();
 
-  if (!apiKey || !workspaceId) {
+  if (!config) {
     const stale = attendanceCache.get();
     if (stale) {
       return NextResponse.json(stale, {
@@ -23,7 +26,7 @@ export async function GET() {
     return NextResponse.json(
       {
         error:
-          "Missing CLOCKIFY_API_KEY or CLOCKIFY_WORKSPACE_ID in environment.",
+          "Missing TIMESHEETS_API_TOKEN or TIMESHEETS_ORGANIZATION_ID in environment.",
       },
       { status: 500 },
     );
@@ -31,8 +34,8 @@ export async function GET() {
 
   try {
     const snapshot = await buildDashboardSnapshot({
-      apiKey,
-      workspaceId,
+      apiKey: config.apiKey,
+      workspaceId: config.workspaceId,
       timezone,
     });
 
@@ -48,7 +51,7 @@ export async function GET() {
     }
 
     const message =
-      error instanceof Error ? error.message : "Unknown Clockify API error";
+      error instanceof Error ? error.message : "Unknown Timesheets API error";
     return NextResponse.json(
       { error: "Failed to load attendance data", details: message },
       { status: 502 },

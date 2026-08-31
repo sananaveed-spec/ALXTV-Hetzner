@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ALX TV",
-  description: "Combined Clockify and Google Sheet kiosk display",
+  description: "Combined Timesheets and Google Sheet kiosk display",
 };
 
 export default function RootLayout({

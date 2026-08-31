@@ -82,7 +82,7 @@ export default function UnderHoursRotator({
           <h3 className={styles.name}>
             {current.name}
             {isAllowlistPlaceholderUserId(current.userId) ? (
-              <span className={styles.pendingTag}> · Not in Clockify yet</span>
+              <span className={styles.pendingTag}> · Not in Timesheets yet</span>
             ) : null}
           </h3>
           <ul className={styles.slotList}>

@@ -20,10 +20,12 @@ function isPublicPath(pathname: string): boolean {
 }
 
 function applyKioskCookie(response: NextResponse, token: string): void {
+  const isProduction = process.env.NODE_ENV === "production";
   response.cookies.set(getKioskCookieName(), token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "none",
+    secure: isProduction,
+    // SameSite=None requires Secure; use Lax on localhost so the cookie is stored.
+    sameSite: isProduction ? "none" : "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });

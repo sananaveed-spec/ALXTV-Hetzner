@@ -123,7 +123,7 @@ export default function ProjectsTable({
         </div>
         {!fillContainer ? (
           <p className={styles.sub}>
-            Project name, assign hours, actual hours, and completion % from Clockify.{" "}
+            Project name, assign hours, actual hours, and completion % from Timesheets.{" "}
             {n > 1
               ? `Showing ${rowsPerPage} projects per page. Auto-advances every ${ROTATE_MS / 1000} seconds.`
               : rows.length > 0

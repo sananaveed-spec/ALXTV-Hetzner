@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./clockify.css";
 
 export const metadata: Metadata = {
-  title: "Clockify Panel",
+  title: "Timesheets Panel",
 };
 
 export default function ClockifyPanelLayout({

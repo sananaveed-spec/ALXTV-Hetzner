@@ -1,6 +1,7 @@
 import {
   ClockifyClient,
   getTimeEntrySeconds,
+  LIFETIME_START,
   type ClockifyUser,
 } from "@/clockify/lib/clockify";
 import type { ClockifyTimeEntry } from "@/clockify/lib/clockify";
@@ -65,7 +66,7 @@ export type WeekBillableHours = {
   rangeLabel: string;
   billableSeconds: number;
   nonBillableSeconds: number;
-  /** Per-day billable from Clockify Summary (DATE group), when Reports API is used. */
+  /** Per-day billable totals grouped by calendar day. */
   dailyBillable?: DailyBillableHours[];
 };
 
@@ -142,7 +143,7 @@ export function getCalendarWeekRange(
   rangeLabel: string;
   mondayDateKey: string;
   sundayDateKey: string;
-  /** Clockify Reports API dates (interpreted in `timeZone`, not UTC Z). */
+  /** Date range keys in workspace timezone. */
   reportDateStart: string;
   reportDateEnd: string;
 } {
@@ -376,7 +377,7 @@ function buildDailyBillableFromSummary(
   });
 }
 
-/** Prefer Clockify Reports (matches UI); fallback to per-user time entries. */
+/** Billable totals from per-user entries or org-wide time entries. */
 async function loadWeekBillableTotals(
   client: ClockifyClient,
   allUsers: ClockifyUser[],
@@ -501,6 +502,7 @@ export async function buildDashboardSnapshot(config: {
   const client = new ClockifyClient({
     apiKey: config.apiKey,
     workspaceId: config.workspaceId,
+    timezone: config.timezone,
   });
   const reportTimezone = await client.resolveReportTimezone(config.timezone);
   const { startISO, endISO } = getTodayRangeInWorkspaceTimezone(config.timezone);
@@ -542,7 +544,14 @@ export async function buildDashboardSnapshot(config: {
     loadPeriodBillableTotals(client, users, reportTimezone, lastMonthRange),
   ]);
   const rawProjects = await client.getProjects().catch(() => []);
-  const projects = mapProjectsToHoursRows(rawProjects);
+  const trackedByProject = await client
+    .getProjectTrackedSecondsMap(LIFETIME_START, new Date().toISOString())
+    .catch(() => new Map<string, number>());
+  const enrichedProjects = rawProjects.map((project) => ({
+    ...project,
+    duration: trackedByProject.get(project.id) ?? 0,
+  }));
+  const projects = mapProjectsToHoursRows(enrichedProjects);
 
   const attendance: UserAttendance[] = [];
   const weeklyRows: WeeklyEmployeeRow[] = [];
