@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.env
+.env.local
+.env*.local
+*.pem
+alx-automation-dashboard-*.json
+tsconfig.tsbuildinfo
+npm-debug.log*

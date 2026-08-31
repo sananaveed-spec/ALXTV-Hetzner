@@ -1,0 +1,8 @@
+services:
+  alx-tv:
+    build: .
+    ports:
+      - "3010:3010"
+    env_file:
+      - .env
+    restart: unless-stopped
