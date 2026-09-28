@@ -400,7 +400,7 @@ export class ClockifyClient {
     memberId?: string;
   }): Promise<RawTimeEntry[]> {
     const entries: RawTimeEntry[] = [];
-    const limit = 100;
+    const limit = 500;
     let offset = 0;
 
     while (true) {
@@ -539,22 +539,65 @@ export class ClockifyClient {
     startISO: string,
     endISO: string,
   ): Promise<Map<string, number>> {
-    const rawEntries = await this.fetchTimeEntries({ startISO, endISO });
+    const startMs = new Date(startISO).getTime();
+    const endMs = new Date(endISO).getTime();
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || startMs > endMs) {
+      return new Map();
+    }
+
+    // Parallel month chunks — sequential year-long pagination is too slow for Main (CF 524).
+    const chunkStarts: string[] = [];
+    let cursor = new Date(startMs);
+    const endDate = new Date(endMs);
+    while (cursor.getTime() <= endDate.getTime()) {
+      chunkStarts.push(cursor.toISOString());
+      const next = new Date(cursor);
+      next.setUTCMonth(next.getUTCMonth() + 1);
+      cursor = next;
+    }
+
+    const CHUNK_CONCURRENCY = 4;
     const trackedByProject = new Map<string, number>();
 
-    for (const raw of rawEntries) {
-      const projectId = raw.project_id?.trim();
-      if (!projectId) {
-        continue;
-      }
-      const sec = getTimeEntrySeconds(rawToClockifyTimeEntry(raw));
-      if (sec <= 0) {
-        continue;
-      }
-      trackedByProject.set(
-        projectId,
-        (trackedByProject.get(projectId) ?? 0) + sec,
+    for (let i = 0; i < chunkStarts.length; i += CHUNK_CONCURRENCY) {
+      const batch = chunkStarts.slice(i, i + CHUNK_CONCURRENCY);
+      const maps = await Promise.all(
+        batch.map(async (chunkStartISO) => {
+          const chunkStart = new Date(chunkStartISO);
+          const chunkEnd = new Date(chunkStart);
+          chunkEnd.setUTCMonth(chunkEnd.getUTCMonth() + 1);
+          chunkEnd.setUTCMilliseconds(chunkEnd.getUTCMilliseconds() - 1);
+          const clampedEnd = new Date(
+            Math.min(chunkEnd.getTime(), endDate.getTime()),
+          );
+          const rawEntries = await this.fetchTimeEntries({
+            startISO: chunkStart.toISOString(),
+            endISO: clampedEnd.toISOString(),
+          });
+          const map = new Map<string, number>();
+          for (const raw of rawEntries) {
+            const projectId = raw.project_id?.trim();
+            if (!projectId) {
+              continue;
+            }
+            const sec = getTimeEntrySeconds(rawToClockifyTimeEntry(raw));
+            if (sec <= 0) {
+              continue;
+            }
+            map.set(projectId, (map.get(projectId) ?? 0) + sec);
+          }
+          return map;
+        }),
       );
+
+      for (const map of maps) {
+        for (const [projectId, sec] of map) {
+          trackedByProject.set(
+            projectId,
+            (trackedByProject.get(projectId) ?? 0) + sec,
+          );
+        }
+      }
     }
 
     return trackedByProject;

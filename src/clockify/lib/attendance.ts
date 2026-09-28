@@ -1,7 +1,6 @@
 import {
   ClockifyClient,
   getTimeEntrySeconds,
-  LIFETIME_START,
   type ClockifyUser,
 } from "@/clockify/lib/clockify";
 import type { ClockifyTimeEntry } from "@/clockify/lib/clockify";
@@ -70,17 +69,28 @@ export type WeekBillableHours = {
   dailyBillable?: DailyBillableHours[];
 };
 
+export type ProjectHoursRange = {
+  startDateKey: string;
+  endDateKey: string;
+};
+
 export type DashboardSnapshot = AttendanceSnapshot & {
   timezone: string;
   weekly: WeeklyHoursReport;
   projects: ProjectHoursRow[];
+  /** Default project actual-hours window (last 12 months unless overridden). */
+  projectRange?: ProjectHoursRange;
   thisWeek: WeekBillableHours;
   lastWeek: WeekBillableHours;
   thisMonth: WeekBillableHours;
   lastMonth: WeekBillableHours;
 };
 
-const REQUEST_CONCURRENCY = 3;
+const REQUEST_CONCURRENCY = 6;
+/** Default project tracked-hours lookback — lifetime org scans time out behind Cloudflare (524). */
+export const PROJECT_TRACKED_LOOKBACK_MONTHS = 24;
+/** Earliest date offered by the “All time” project-hours preset. */
+export const PROJECT_HOURS_ALL_TIME_START = "2015-01-01";
 
 function toHours(seconds: number): number {
   return Math.round((seconds / 3600) * 100) / 100;
@@ -294,75 +304,27 @@ function latestISO(a: string, b: string): string {
   return a > b ? a : b;
 }
 
-/** Sum every workspace user's time entries (all statuses; no name exclusions). */
-async function fetchWeekBillableFromAllUserEntries(
-  client: ClockifyClient,
-  users: ClockifyUser[],
-  weekStartISO: string,
-  weekEndISO: string,
-  timezone: string,
-  mondayDateKey: string,
-  sundayDateKey: string,
-): Promise<{ billableSeconds: number; nonBillableSeconds: number }> {
-  let billableSeconds = 0;
-  let nonBillableSeconds = 0;
-
-  for (let i = 0; i < users.length; i += REQUEST_CONCURRENCY) {
-    const batch = users.slice(i, i + REQUEST_CONCURRENCY);
-    const batchTotals = await Promise.all(
-      batch.map(async (user) => {
-        try {
-          const entries = await client.getUserTimeEntriesForRange(
-            user.id,
-            weekStartISO,
-            weekEndISO,
-          );
-          return sumBillableSecondsInDateKeyRange(
-            entries,
-            timezone,
-            mondayDateKey,
-            sundayDateKey,
-          );
-        } catch {
-          return { billableSeconds: 0, nonBillableSeconds: 0 };
-        }
-      }),
-    );
-
-    for (const totals of batchTotals) {
-      billableSeconds += totals.billableSeconds;
-      nonBillableSeconds += totals.nonBillableSeconds;
-    }
-  }
-
-  return { billableSeconds, nonBillableSeconds };
-}
-
-function parseSummaryDateKey(name: string, timezone: string): string | null {
-  const iso = name.match(/^(\d{4}-\d{2}-\d{2})/);
-  if (iso) {
-    return iso[1]!;
-  }
-  const parsed = new Date(name);
-  if (!Number.isNaN(parsed.getTime())) {
-    return formatInTimeZone(parsed, timezone, "yyyy-MM-dd");
-  }
-  return null;
-}
-
-function buildDailyBillableFromSummary(
-  rows: { name: string; seconds: number }[],
+function buildDailyBillableFromEntries(
+  entries: ClockifyTimeEntry[],
   timezone: string,
   mondayDateKey: string,
   sundayDateKey: string,
 ): DailyBillableHours[] {
   const byKey = new Map<string, number>();
-  for (const row of rows) {
-    const dateKey = parseSummaryDateKey(row.name, timezone);
-    if (!dateKey || dateKey < mondayDateKey || dateKey > sundayDateKey) {
+  for (const entry of entries) {
+    const sec = getTimeEntrySeconds(entry);
+    if (sec <= 0 || entry.billable === false) {
       continue;
     }
-    byKey.set(dateKey, (byKey.get(dateKey) ?? 0) + row.seconds);
+    const dayKey = formatInTimeZone(
+      new Date(entry.timeInterval.start),
+      timezone,
+      "yyyy-MM-dd",
+    );
+    if (dayKey < mondayDateKey || dayKey > sundayDateKey) {
+      continue;
+    }
+    byKey.set(dayKey, (byKey.get(dayKey) ?? 0) + sec);
   }
 
   const mondayNoon = fromZonedTime(`${mondayDateKey}T12:00:00.000`, timezone);
@@ -377,121 +339,146 @@ function buildDailyBillableFromSummary(
   });
 }
 
-/** Billable totals from per-user entries or org-wide time entries. */
-async function loadWeekBillableTotals(
-  client: ClockifyClient,
-  allUsers: ClockifyUser[],
+function dateKeysToIsoRange(
   timezone: string,
-  weeksAgo: 0 | 1,
-  range: {
-    weekStartISO: string;
-    weekEndISO: string;
-    mondayDateKey: string;
-    sundayDateKey: string;
-    reportDateStart: string;
-    reportDateEnd: string;
-  },
-): Promise<{
-  billableSeconds: number;
-  nonBillableSeconds: number;
-  dailyBillable?: DailyBillableHours[];
-}> {
-  if (getDashboardAllowlist().length > 0) {
-    return fetchWeekBillableFromAllUserEntries(
-      client,
-      allUsers,
-      range.weekStartISO,
-      range.weekEndISO,
+  startDateKey: string,
+  endDateKey: string,
+): { startISO: string; endISO: string } {
+  return {
+    startISO: fromZonedTime(
+      `${startDateKey}T00:00:00.000`,
       timezone,
-      range.mondayDateKey,
-      range.sundayDateKey,
-    );
-  }
-
-  const dateRangeType = weeksAgo === 0 ? "THIS_WEEK" : "LAST_WEEK";
-
-  try {
-    const totals = await client.getWeekBillableTotals(
-      range.reportDateStart,
-      range.reportDateEnd,
+    ).toISOString(),
+    endISO: fromZonedTime(
+      `${endDateKey}T23:59:59.999`,
       timezone,
-      weeksAgo,
-    );
-    let dailyBillable: DailyBillableHours[] | undefined;
-    try {
-      const dayRows = await client.getSummaryBillableSecondsByDay(
-        range.reportDateStart,
-        range.reportDateEnd,
-        timezone,
-        "BILLABLE",
-        dateRangeType,
-      );
-      dailyBillable = buildDailyBillableFromSummary(
-        dayRows,
-        timezone,
-        range.mondayDateKey,
-        range.sundayDateKey,
-      );
-    } catch {
-      dailyBillable = undefined;
-    }
-    return { ...totals, dailyBillable };
-  } catch {
-    const fallback = await fetchWeekBillableFromAllUserEntries(
-      client,
-      allUsers,
-      range.weekStartISO,
-      range.weekEndISO,
-      timezone,
-      range.mondayDateKey,
-      range.sundayDateKey,
-    );
-    return fallback;
-  }
+    ).toISOString(),
+  };
 }
 
-async function loadPeriodBillableTotals(
-  client: ClockifyClient,
-  allUsers: ClockifyUser[],
+export function getDefaultProjectHoursRange(
   timezone: string,
-  range: {
-    periodStartISO: string;
-    periodEndISO: string;
-    startDateKey: string;
-    endDateKey: string;
-    reportDateStart: string;
-    reportDateEnd: string;
-  },
-): Promise<{ billableSeconds: number; nonBillableSeconds: number }> {
-  if (getDashboardAllowlist().length > 0) {
-    return fetchWeekBillableFromAllUserEntries(
-      client,
-      allUsers,
-      range.periodStartISO,
-      range.periodEndISO,
-      timezone,
-      range.startDateKey,
-      range.endDateKey,
+): ProjectHoursRange {
+  const now = new Date();
+  const endDateKey = formatInTimeZone(now, timezone, "yyyy-MM-dd");
+  const endNoon = fromZonedTime(`${endDateKey}T12:00:00.000`, timezone);
+  const startDateKey = formatInTimeZone(
+    subMonths(endNoon, PROJECT_TRACKED_LOOKBACK_MONTHS),
+    timezone,
+    "yyyy-MM-dd",
+  );
+  return { startDateKey, endDateKey };
+}
+
+export function parseProjectHoursDateKey(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return null;
+  }
+  const parsed = new Date(`${trimmed}T12:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return trimmed;
+}
+
+export async function buildProjectHoursForRange(config: {
+  apiKey: string;
+  workspaceId: string;
+  timezone: string;
+  startDateKey: string;
+  endDateKey: string;
+}): Promise<{
+  rows: ProjectHoursRow[];
+  projectRange: ProjectHoursRange;
+}> {
+  const client = new ClockifyClient({
+    apiKey: config.apiKey,
+    workspaceId: config.workspaceId,
+    timezone: config.timezone,
+  });
+  const { startISO, endISO } = dateKeysToIsoRange(
+    config.timezone,
+    config.startDateKey,
+    config.endDateKey,
+  );
+
+  const [rawProjects, trackedByProject] = await Promise.all([
+    client.getProjects().catch(() => []),
+    client
+      .getProjectTrackedSecondsMap(startISO, endISO)
+      .catch(() => new Map<string, number>()),
+  ]);
+
+  const enrichedProjects = rawProjects.map((project) => ({
+    ...project,
+    duration: trackedByProject.get(project.id) ?? 0,
+  }));
+
+  return {
+    rows: mapProjectsToHoursRows(enrichedProjects),
+    projectRange: {
+      startDateKey: config.startDateKey,
+      endDateKey: config.endDateKey,
+    },
+  };
+}
+
+async function fetchAllowlistedUserEntries(
+  client: ClockifyClient,
+  users: ClockifyUser[],
+  startISO: string,
+  endISO: string,
+): Promise<Map<string, ClockifyTimeEntry[]>> {
+  const entriesByUserId = new Map<string, ClockifyTimeEntry[]>();
+
+  for (let i = 0; i < users.length; i += REQUEST_CONCURRENCY) {
+    const batch = users.slice(i, i + REQUEST_CONCURRENCY);
+    const batchEntries = await Promise.all(
+      batch.map(async (user) => {
+        try {
+          const entries = await client.getUserTimeEntriesForRange(
+            user.id,
+            startISO,
+            endISO,
+          );
+          return { userId: user.id, entries };
+        } catch {
+          return { userId: user.id, entries: [] as ClockifyTimeEntry[] };
+        }
+      }),
     );
+    for (const row of batchEntries) {
+      entriesByUserId.set(row.userId, row.entries);
+    }
   }
 
-  try {
-    return await client.getDetailedReportBillableTotals(
-      range.reportDateStart,
-      range.reportDateEnd,
+  return entriesByUserId;
+}
+
+function sumBillableAcrossUsers(
+  users: ClockifyUser[],
+  entriesByUserId: Map<string, ClockifyTimeEntry[]>,
+  timezone: string,
+  startDateKey: string,
+  endDateKey: string,
+): { billableSeconds: number; nonBillableSeconds: number } {
+  let billableSeconds = 0;
+  let nonBillableSeconds = 0;
+  for (const user of users) {
+    const totals = sumBillableSecondsInDateKeyRange(
+      entriesByUserId.get(user.id) ?? [],
       timezone,
+      startDateKey,
+      endDateKey,
     );
-  } catch {
-    return fetchWeekBillableFromAllUserEntries(
-      client,
-      allUsers,
-      range.periodStartISO,
-      range.periodEndISO,
-      timezone,
-      range.startDateKey,
-      range.endDateKey,
-    );
+    billableSeconds += totals.billableSeconds;
+    nonBillableSeconds += totals.nonBillableSeconds;
   }
+  return { billableSeconds, nonBillableSeconds };
 }
 
 export async function buildDashboardSnapshot(config: {
@@ -513,105 +500,103 @@ export async function buildDashboardSnapshot(config: {
   const lastWeekRange = getCalendarWeekRange(reportTimezone, 1);
   const thisMonthRange = getCalendarMonthRange(reportTimezone, 0);
   const lastMonthRange = getCalendarMonthRange(reportTimezone, 1);
-  const fetchStartISO = earliestISO(
+  const projectRange = getDefaultProjectHoursRange(reportTimezone);
+
+  const userFetchStartISO = earliestISO(
     earliestISO(weekStartISO, lastWeekRange.weekStartISO),
     lastMonthRange.periodStartISO,
   );
-  const fetchEndISO = latestISO(weekEndISO, thisWeekRange.weekEndISO);
+  const userFetchEndISO = latestISO(weekEndISO, thisWeekRange.weekEndISO);
 
   const allUsers = await client.getAllUsers();
   const users = allUsers.filter(
     (user) => user.status === "ACTIVE" && isIncludedOnDashboard(user.name),
   );
 
-  const [thisWeekTotals, lastWeekTotals, thisMonthTotals, lastMonthTotals] =
-    await Promise.all([
-    loadWeekBillableTotals(
+  // Keep attendance off the project-hours critical path (org-wide scans are slow on Main).
+  // ProjectsTable loads actual hours via /api/project-hours (default last 12 months).
+  const [entriesByUserId, rawProjects] = await Promise.all([
+    fetchAllowlistedUserEntries(
       client,
       users,
-      reportTimezone,
-      0,
-      thisWeekRange,
+      userFetchStartISO,
+      userFetchEndISO,
     ),
-    loadWeekBillableTotals(
-      client,
-      users,
-      reportTimezone,
-      1,
-      lastWeekRange,
-    ),
-    loadPeriodBillableTotals(client, users, reportTimezone, thisMonthRange),
-    loadPeriodBillableTotals(client, users, reportTimezone, lastMonthRange),
+    client.getProjects().catch(() => []),
   ]);
-  const rawProjects = await client.getProjects().catch(() => []);
-  const trackedByProject = await client
-    .getProjectTrackedSecondsMap(LIFETIME_START, new Date().toISOString())
-    .catch(() => new Map<string, number>());
-  const enrichedProjects = rawProjects.map((project) => ({
-    ...project,
-    duration: trackedByProject.get(project.id) ?? 0,
-  }));
-  const projects = mapProjectsToHoursRows(enrichedProjects);
+
+  const projects = mapProjectsToHoursRows(
+    rawProjects.map((project) => ({ ...project, duration: 0 })),
+  );
+
+  const thisWeekTotals = sumBillableAcrossUsers(
+    users,
+    entriesByUserId,
+    reportTimezone,
+    thisWeekRange.mondayDateKey,
+    thisWeekRange.sundayDateKey,
+  );
+  const lastWeekTotals = sumBillableAcrossUsers(
+    users,
+    entriesByUserId,
+    reportTimezone,
+    lastWeekRange.mondayDateKey,
+    lastWeekRange.sundayDateKey,
+  );
+  const thisMonthTotals = sumBillableAcrossUsers(
+    users,
+    entriesByUserId,
+    reportTimezone,
+    thisMonthRange.startDateKey,
+    thisMonthRange.endDateKey,
+  );
+  const lastMonthTotals = sumBillableAcrossUsers(
+    users,
+    entriesByUserId,
+    reportTimezone,
+    lastMonthRange.startDateKey,
+    lastMonthRange.endDateKey,
+  );
+
+  const thisWeekEntries = users.flatMap(
+    (user) => entriesByUserId.get(user.id) ?? [],
+  );
+  const thisWeekDailyBillable = buildDailyBillableFromEntries(
+    thisWeekEntries,
+    reportTimezone,
+    thisWeekRange.mondayDateKey,
+    thisWeekRange.sundayDateKey,
+  );
+  const lastWeekDailyBillable = buildDailyBillableFromEntries(
+    thisWeekEntries,
+    reportTimezone,
+    lastWeekRange.mondayDateKey,
+    lastWeekRange.sundayDateKey,
+  );
 
   const attendance: UserAttendance[] = [];
   const weeklyRows: WeeklyEmployeeRow[] = [];
 
-  for (let i = 0; i < users.length; i += REQUEST_CONCURRENCY) {
-    const batch = users.slice(i, i + REQUEST_CONCURRENCY);
-    const batchResult = await Promise.all(
-      batch.map(async (user) => {
-        try {
-          const entries = await client.getUserTimeEntriesForRange(
-            user.id,
-            fetchStartISO,
-            fetchEndISO,
-          );
-          const byDay = bucketSecondsByWorkspaceDay(entries, config.timezone);
-          const secondsPerDay = dayKeys.map((k) => byDay.get(k) ?? 0);
-          const trackedSeconds = byDay.get(todayKey) ?? 0;
-          const weekTotalSeconds = secondsPerDay.reduce((s, v) => s + v, 0);
+  for (const user of users) {
+    const entries = entriesByUserId.get(user.id) ?? [];
+    const byDay = bucketSecondsByWorkspaceDay(entries, config.timezone);
+    const secondsPerDay = dayKeys.map((k) => byDay.get(k) ?? 0);
+    const trackedSeconds = byDay.get(todayKey) ?? 0;
+    const weekTotalSeconds = secondsPerDay.reduce((s, v) => s + v, 0);
 
-          return {
-            userId: user.id,
-            name: user.name,
-            email: user.email,
-            trackedSeconds,
-            present: trackedSeconds > 0,
-            weekly: {
-              userId: user.id,
-              name: user.name,
-              secondsPerDay,
-              weekTotalSeconds,
-            } satisfies WeeklyEmployeeRow,
-          };
-        } catch {
-          return {
-            userId: user.id,
-            name: user.name,
-            email: user.email,
-            trackedSeconds: 0,
-            present: false,
-            weekly: {
-              userId: user.id,
-              name: user.name,
-              secondsPerDay: dayKeys.map(() => 0),
-              weekTotalSeconds: 0,
-            } satisfies WeeklyEmployeeRow,
-          };
-        }
-      }),
-    );
-
-    for (const row of batchResult) {
-      attendance.push({
-        userId: row.userId,
-        name: row.name,
-        email: row.email,
-        trackedSeconds: row.trackedSeconds,
-        present: row.present,
-      });
-      weeklyRows.push(row.weekly);
-    }
+    attendance.push({
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      trackedSeconds,
+      present: trackedSeconds > 0,
+    });
+    weeklyRows.push({
+      userId: user.id,
+      name: user.name,
+      secondsPerDay,
+      weekTotalSeconds,
+    });
   }
 
   const allowlist = getDashboardAllowlist();
@@ -683,17 +668,18 @@ export async function buildDashboardSnapshot(config: {
       dayTotalsSeconds,
     },
     projects,
+    projectRange,
     thisWeek: {
       rangeLabel: thisWeekRange.rangeLabel,
       billableSeconds: thisWeekTotals.billableSeconds,
       nonBillableSeconds: thisWeekTotals.nonBillableSeconds,
-      dailyBillable: thisWeekTotals.dailyBillable,
+      dailyBillable: thisWeekDailyBillable,
     },
     lastWeek: {
       rangeLabel: lastWeekRange.rangeLabel,
       billableSeconds: lastWeekTotals.billableSeconds,
       nonBillableSeconds: lastWeekTotals.nonBillableSeconds,
-      dailyBillable: lastWeekTotals.dailyBillable,
+      dailyBillable: lastWeekDailyBillable,
     },
     thisMonth: {
       rangeLabel: thisMonthRange.rangeLabel,

@@ -295,7 +295,12 @@ export default function DashboardView() {
       </div>
 
       <div className={styles.kioskProjects}>
-        <ProjectsTable rows={data.projects} compact />
+        <ProjectsTable
+          rows={data.projects}
+          projectRange={data.projectRange}
+          enableRangePicker
+          compact
+        />
       </div>
     </div>
   );

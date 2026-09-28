@@ -1,4 +1,7 @@
-import { buildDashboardSnapshot, type DashboardSnapshot } from "@/clockify/lib/attendance";
+import {
+  buildDashboardSnapshot,
+  type DashboardSnapshot,
+} from "@/clockify/lib/attendance";
 import {
   getClockifyConfig,
   getClockifyTimezone,
@@ -9,6 +12,29 @@ import { NextResponse } from "next/server";
 export const maxDuration = 300;
 
 const attendanceCache = createStaleCache<DashboardSnapshot>();
+let refreshInFlight: Promise<DashboardSnapshot> | null = null;
+
+function startRefresh(
+  apiKey: string,
+  workspaceId: string,
+  timezone: string,
+): Promise<DashboardSnapshot> {
+  if (!refreshInFlight) {
+    refreshInFlight = buildDashboardSnapshot({
+      apiKey,
+      workspaceId,
+      timezone,
+    })
+      .then((snapshot) => {
+        attendanceCache.set(snapshot);
+        return snapshot;
+      })
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
 
 export async function GET() {
   const config = getClockifyConfig();
@@ -32,24 +58,26 @@ export async function GET() {
     );
   }
 
-  try {
-    const snapshot = await buildDashboardSnapshot({
-      apiKey: config.apiKey,
-      workspaceId: config.workspaceId,
-      timezone,
+  const stale = attendanceCache.get();
+  if (stale) {
+    // Serve last good snapshot immediately; refresh in background (avoids CF 524).
+    void startRefresh(config.apiKey, config.workspaceId, timezone).catch(
+      () => undefined,
+    );
+    return NextResponse.json(stale, {
+      status: 200,
+      headers: { "X-Stale-Data": "true" },
     });
+  }
 
-    attendanceCache.set(snapshot);
+  try {
+    const snapshot = await startRefresh(
+      config.apiKey,
+      config.workspaceId,
+      timezone,
+    );
     return NextResponse.json(snapshot, { status: 200 });
   } catch (error) {
-    const stale = attendanceCache.get();
-    if (stale) {
-      return NextResponse.json(stale, {
-        status: 200,
-        headers: { "X-Stale-Data": "true" },
-      });
-    }
-
     const message =
       error instanceof Error ? error.message : "Unknown Timesheets API error";
     return NextResponse.json(

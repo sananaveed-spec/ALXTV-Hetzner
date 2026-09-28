@@ -607,6 +607,8 @@ export default function AlxTvDashboard({
         <div className={styles.projectsColumn}>
           <ProjectsTable
             rows={data.projects}
+            projectRange={data.projectRange}
+            enableRangePicker
             compact
             fillContainer
             syncTick={sharedSlideTick}
